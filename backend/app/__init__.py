@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from sqlalchemy.orm import configure_mappers
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -16,7 +17,7 @@ def create_app(config_class='config.Config'):
     db.init_app(app)
 
     # Habilita CORS para permitir solicitações do frontend
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
     # Registra as blueprints
     from app.routes.auth import auth_bp

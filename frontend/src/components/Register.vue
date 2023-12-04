@@ -8,7 +8,7 @@
         </div>
 
         <div class="mb-4">
-          <input v-model="email" type="email" id="email" class="form-control border-custom" placeholder="Email" required pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
+          <input v-model="email" type="email" id="email" class="form-control border-custom" placeholder="Email" required />
         </div>
 
         <div class="mb-4 position-relative">
@@ -26,6 +26,10 @@
           <div class="form-check">
             <input v-model="userType" class="form-check-input" type="radio" name="userType" id="client" value="client" checked />
             <label class="form-check-label" for="client">Cliente</label>
+          </div>
+          <div class="form-check">
+            <input v-model="userType" class="form-check-input" type="radio" name="userType" id="representative" value="representative" />
+            <label class="form-check-label" for="representative">Representante</label>
           </div>
           <div class="form-check">
             <input v-model="userType" class="form-check-input" type="radio" name="userType" id="employee" value="employee" />
@@ -53,7 +57,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import Notification from '../components/Notification.vue';
+import Notification from './notification.vue';
 import axios from 'axios';
 
 export default {
@@ -85,34 +89,51 @@ export default {
       }
     };
 
-    const handleSubmit = () => {
-      if (!name.value || !email.value || !password.value || !confirmPassword.value) {
-        showNotification('Por favor, preencha todos os campos.');
-        return;
-      }
+    const handleSubmit = async () => {
+  if (!name.value || !email.value || !password.value || !confirmPassword.value) {
+    showNotification('Por favor, preencha todos os campos.');
+    return;
+  }
 
-      if (!/^[a-zA-Z]{3,}$/.test(name.value)) {
-        showNotification('Nome de usuário inválido. Deve conter no mínimo 3 letras e apenas letras.');
-        return;
-      }
+  if (!/^[a-zA-Z ]{3,}$/.test(name.value)) {
+    showNotification('Nome de usuário inválido. Deve conter no mínimo 3 letras e apenas letras ou espaços.');
+    return;
+  }
 
-      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.value)) {
-        showNotification('Email inválido. Por favor, insira um email válido.');
-        return;
-      }
+  const isValidEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.value);
 
-      if (password.value !== confirmPassword.value) {
-        showNotification('As senhas não coincidem. Por favor, tente novamente.');
-        return;
-      }
+  if (!isValidEmail) {
+    showNotification('Email inválido. Por favor, insira um email válido.');
+    return;
+  }
 
-      // Lógica de Registro
+  if (password.value !== confirmPassword.value) {
+    showNotification('As senhas não coincidem. Por favor, tente novamente.');
+    return;
+  }
 
-      const registrationSucessful = true;
-      if (!registrationSucessful) {
-        showNotification('Erro ao registrar. Por favor, tente novamente mais tarde.');
-      }
-    };
+  try {
+    // Fazer a requisição HTTP POST para a rota de registro
+    const response = await axios.post('http://127.0.0.1:5173/api/auth/register', {
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      confirmPassword: confirmPassword.value,
+      userType: userType.value,
+    });
+
+    // Verificar se o registro foi bem-sucedido
+    if (response.status === 201) {
+      showNotification('Registro bem-sucedido! Faça login para começar.');
+      // Redirecionar para a página de login, se necessário
+    } else {
+      showNotification('Erro ao registrar. Por favor, tente novamente mais tarde.');
+    }
+  } catch (error) {
+    console.error('Erro na requisição de registro:', error);
+    showNotification('Erro ao conectar ao servidor. Por favor, tente novamente mais tarde.');
+  }
+};
 
     return {
       name,

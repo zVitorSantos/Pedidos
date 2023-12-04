@@ -4,6 +4,6 @@ import Register from '../components/Register.vue';
 
 <template>
   <main>
-    <Register/>
+    <Register />
   </main>
 </template>
