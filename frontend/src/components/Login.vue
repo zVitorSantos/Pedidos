@@ -42,17 +42,18 @@
 </template>
 
 <script setup>
-import Notification from '../components/Notification.vue';
+import { ref } from 'vue';
+import axios from 'axios';
+import Notification from './notification.vue';
 
-// Definindo o estado do componente
 let email = '';
 let password = '';
 let rememberMe = true;
 
-// Função para exibir a notificação
+const notification = ref(null);
+
 function showNotification(message) {
-  // Chama o método showNotification do componente de notificação
-  refs.notification.showNotification(message);
+  notification.value.showNotification(message);
 }
 
 // Função para alternar a visibilidade da senha
@@ -71,18 +72,30 @@ function togglePasswordVisibility() {
   }
 }
 
-// Função para lidar com o envio do formulário
-function handleSubmit() {
+async function handleSubmit() {
   // Verifique se os campos estão preenchidos
   if (!email || !password) {
     showNotification('Por favor, preencha todos os campos.');
     return;
   }
 
-  // Simule a lógica de login aqui (substitua pelo seu código real)
-  // Se houver um erro de login, exiba uma notificação
-  const loginSuccessful = true; // Substitua por sua lógica real
-  if (!loginSuccessful) {
+  try {
+    // Faça uma solicitação POST para a rota de login
+    const response = await axios.post('http://127.0.0.1:5173/api/auth/login', {
+      email,
+      password,
+    });
+    
+    console.log(response);
+
+    // Se a solicitação for bem-sucedida, armazene o token de acesso no local storage
+    localStorage.setItem('accessToken', response.data.accessToken);
+    console.log(response.data.accessToken);
+
+    // Redirecione o usuário para a página inicial
+    window.location.href = '/';
+  } catch (error) {
+    console.log(error);
     showNotification('Erro ao fazer login. Verifique suas credenciais.');
   }
 }

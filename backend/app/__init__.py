@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
 from sqlalchemy.orm import configure_mappers
 
 db = SQLAlchemy()
@@ -17,7 +18,7 @@ def create_app(config_class='config.Config'):
     db.init_app(app)
 
     # Habilita CORS para permitir solicitações do frontend
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # Registra as blueprints
     from app.routes.auth import auth_bp
@@ -25,5 +26,10 @@ def create_app(config_class='config.Config'):
 
     # Inicializa o Flask-Migrate após configurar o aplicativo
     migrate.init_app(app, db)
+
+    with app.app_context():
+        db.create_all()  
+
+    jwt = JWTManager(app)
 
     return app

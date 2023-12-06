@@ -24,19 +24,19 @@
         <!-- Tipo de Usuário -->
         <div class="form-outline mb-4">
           <div class="form-check">
-            <input v-model="userType" class="form-check-input" type="radio" name="userType" id="client" value="client" checked />
+            <input v-model="role" class="form-check-input" type="radio" name="role" id="client" value="client" checked />
             <label class="form-check-label" for="client">Cliente</label>
           </div>
           <div class="form-check">
-            <input v-model="userType" class="form-check-input" type="radio" name="userType" id="representative" value="representative" />
+            <input v-model="role" class="form-check-input" type="radio" name="role" id="representative" value="representative" />
             <label class="form-check-label" for="representative">Representante</label>
           </div>
           <div class="form-check">
-            <input v-model="userType" class="form-check-input" type="radio" name="userType" id="employee" value="employee" />
+            <input v-model="role" class="form-check-input" type="radio" name="role" id="employee" value="employee" />
             <label class="form-check-label" for="employee">Funcionário</label>
           </div>
           <div class="form-check">
-            <input v-model="userType" class="form-check-input" type="radio" name="userType" id="admin" value="admin" />
+            <input v-model="role" class="form-check-input" type="radio" name="role" id="admin" value="admin" />
             <label class="form-check-label" for="admin">Administrador</label>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default {
     const email = ref('');
     const password = ref('');
     const confirmPassword = ref('');
-    const userType = ref('client');
+    const role = ref('client');
 
     // Criar uma referência para o componente Notification
     const notificationRef = ref();
@@ -119,12 +119,12 @@ export default {
       email: email.value,
       password: password.value,
       confirmPassword: confirmPassword.value,
-      userType: userType.value,
+      role: role.value,
     });
 
     // Verificar se o registro foi bem-sucedido
     if (response.status === 201) {
-      showNotification('Registro bem-sucedido! Faça login para começar.');
+      showNotification('Requisição de registro bem-sucedida!\nAguarde a autorização de um administrador\n para efetuar o login.');
       // Redirecionar para a página de login, se necessário
     } else {
       showNotification('Erro ao registrar. Por favor, tente novamente mais tarde.');
@@ -140,7 +140,7 @@ export default {
       email,
       password,
       confirmPassword,
-      userType,
+      role,
       showNotification,
       togglePasswordVisibility,
       handleSubmit,

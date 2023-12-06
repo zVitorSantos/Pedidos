@@ -3,3 +3,4 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = '1234'
     SQLALCHEMY_MIGRATE_REPO = 'migrations'
+    JWT_SECRET_KEY = 'teste1234'

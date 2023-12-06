@@ -1,12 +1,25 @@
-from flask import Flask
-from app.models import db, User
+from app import create_app, db
+from app.models import User, Empresa
 
-app = Flask(__name__)
+app = create_app()
 
-# Configurações do banco de dados
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  
-db.init_app(app)
-
+# Crie um contexto de aplicação
 with app.app_context():
-    # Crie o banco de dados
-    db.create_all()
+    # Obtenha o usuário
+    user = User.query.filter_by(email='vendas03.gmg@gmail.com').first()
+
+    # Nomes das empresas a serem criadas
+    empresa_names = ['Brilha Natal', 'Verytel', 'Maggiore Modas', 'Maggiore Peças']
+
+    # Crie empresas se elas não existirem
+    for name in empresa_names:
+        empresa = Empresa.query.filter_by(name=name).first()
+        if not empresa:
+            empresa = Empresa(name=name)
+            db.session.add(empresa)
+        
+        # Associe a empresa ao usuário
+        if empresa not in user.empresas:
+            user.empresas.append(empresa)
+
+    db.session.commit()

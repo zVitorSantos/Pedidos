@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request
-from flask_login import current_user, logout_user
+from flask import Blueprint, jsonify, request, flash, redirect, url_for
+from flask_jwt_extended import create_access_token
+from flask_login import current_user, logout_user, login_required
 from functools import wraps
-from app.models import User, db
+from app.models import User, Empresa, Admin, db
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -14,12 +15,25 @@ def admin_required(func):
             return jsonify({'error': 'Apenas administradores podem acessar esta rota'}), 403
     return wrapper
 
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/home')
+def home():
+    if current_user.is_authenticated:
+        return jsonify(isAuthenticated=True)
+    else:
+        return jsonify(isAuthenticated=False)
+
+@auth_bp.route('/register', methods=['POST', 'OPTIONS'])
 def register():
+    if request.method == 'OPTIONS':
+        # Responde à solicitação OPTIONS com os cabeçalhos CORS apropriados
+        response = jsonify({'message': 'Preflight request received'})
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        return response
+
     data = request.json
 
     # Validação de Dados
-    if not all(key in data for key in ['name', 'email', 'password', 'confirmPassword', 'userType']):
+    if not all(key in data for key in ['name', 'email', 'password', 'confirmPassword', 'role']):
         return jsonify({'error': 'Todos os campos são obrigatórios'}), 400
 
     # Confirmação de Senha
@@ -35,7 +49,7 @@ def register():
         return jsonify({'error': 'Este email já está em uso'}), 400
 
     # Registro de Usuário
-    new_user = User(name=data.get('name'), email=email, user_type=data.get('userType'), is_approved=False)
+    new_user = User(name=data.get('name'), email=email, role=data.get('role'), is_approved=False)
     new_user.set_password(password)
     new_user.save()
 
@@ -50,8 +64,29 @@ def approve_user(user_id):
     if user.is_approved:
         return jsonify({'error': 'Este usuário já foi aprovado'}), 400
 
+    # Obter as empresas a serem associadas ao usuário
+    empresa_ids = request.json.get('empresa_ids')
+    if not empresa_ids:
+        return jsonify({'error': 'Pelo menos uma empresa deve ser especificada'}), 400
+
+    # Obter as empresas do banco de dados
+    empresas = Empresa.query.filter(Empresa.id.in_(empresa_ids)).all()
+
+    if len(empresas) != len(empresa_ids):
+        return jsonify({'error': 'Uma ou mais empresas especificadas não existem'}), 400
+
     # Aprovar o usuário
     user.is_approved = True
+
+    # Associar as empresas ao usuário
+    user.empresas = empresas
+
+    # Promover a admin se solicitado
+    if request.json.get('promote_to_admin'):
+        user.role = 'admin'
+        admin = Admin(user=user)
+        db.session.add(admin)
+
     db.session.commit()
 
     return jsonify({'message': 'Usuário aprovado com sucesso'}), 200
@@ -80,6 +115,7 @@ def get_pending_users():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    print("Login function called")
     data = request.json
     email = data.get('email')
     password = data.get('password')
@@ -87,10 +123,12 @@ def login():
     user = User.query.filter_by(email=email).first()
 
     if user and user.check_password(password):
-        # Verificar se o usuário está aprovado
+        print(user.check_password(password))
         if user.is_approved:
-            # Implemente a lógica de login aqui
-            return jsonify({'message': 'Login bem-sucedido'}), 200
+            # Crie um token de acesso
+            access_token = create_access_token(identity=email)
+            print(access_token)
+            return jsonify(access_token=access_token), 200
         else:
             return jsonify({'error': 'Aguardando aprovação do administrador'}), 403
     else:
