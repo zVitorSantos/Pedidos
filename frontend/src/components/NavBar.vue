@@ -1,64 +1,67 @@
-<script setup>
-import { onMounted } from 'vue';
-
-onMounted(() => {
-  // Carregar scripts do MDB UI Kit após a montagem do componente
-  const script1 = document.createElement('script');
-  script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.2/mdb.min.js';
-  script1.async = true;
-  document.head.appendChild(script1);
-
-  const script2 = document.createElement('script');
-  script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.2/js/dropdown.js'; // ajuste o caminho conforme necessário
-  script2.async = true;
-  document.head.appendChild(script2);
-});
-</script>
-
 <template>
-    <nav class="navbar navbar-expand-lg navbar-light bg-body-tertiary">
-    <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+      <div class="container-fluid">
+        <!-- Logo -->
+        <a class="navbar-brand" href="#">Navbar</a>
+  
         <!-- Busca -->
-        <a class="navbar-brand">Navbar</a>
         <form class="d-flex input-group w-auto">
-        <input
+          <input
             type="search"
             class="form-control rounded"
             placeholder="Search"
             aria-label="Search"
             aria-describedby="search-addon"
-        />
-        <span class="input-group-text border-0" id="search-addon">
+          />
+          <span class="input-group-text border-0" id="search-addon">
             <i class="fas fa-search"></i>
-        </span>
+          </span>
         </form>
-
-        <!-- Ícone de Dropdown do Usuário -->
-        <li class="nav-item me-3 me-lg-0 dropdown">
-        <a
-            data-mdb-dropdown-init
-            class="nav-link dropdown-toggle"
-            href="#"
-            id="userDropdown"
-            role="button"
+  
+        <!-- Dropdown do Usuário -->
+        <div class="dropdown">
+          <button
+            class="btn btn-secondary dropdown-toggle"
+            type="button"
+            id="dropdownMenuButton"
+            data-bs-toggle="dropdown"
             aria-expanded="false"
-        >
-            <i class="fas fa-user"></i>
-        </a>
-        <ul class="dropdown-menu" aria-labelledby="userDropdown">
-            <li>
-            <a class="dropdown-item" href="#">Action</a>
-            </li>
-            <li>
-            <a class="dropdown-item" href="#">Another action</a>
-            </li>
-            <li><hr class="dropdown-divider" /></li>
-            <li>
-            <a class="dropdown-item" href="#">Something else here</a>
-            </li>
-        </ul>
-        </li>
-    </div>
+          >
+            User
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <li><a class="dropdown-item" href="#">Profile</a></li>
+            <li><a class="dropdown-item" href="#">Settings</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
+          </ul>
+        </div>
+      </div>
     </nav>
-</template>
-
+  </template>
+  
+  <script setup>
+  import { ref } from 'vue';
+  import axios from 'axios';
+  
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://127.0.0.1:5173/api/auth/logout');
+      localStorage.removeItem('accessToken');
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error logging out', error);
+    }
+  };
+  </script>
+  
+  <style scoped>
+  .navbar {
+    background-color: #f8f9fa;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1030;
+  }
+  </style>

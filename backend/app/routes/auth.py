@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, flash, redirect, url_for
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_login import current_user, logout_user, login_required
 from functools import wraps
 from app.models import User, Empresa, Admin, db
@@ -133,6 +133,12 @@ def login():
             return jsonify({'error': 'Aguardando aprovação do administrador'}), 403
     else:
         return jsonify({'error': 'Credenciais inválidas'}), 401
+    
+@auth_bp.route('/verify-token', methods=['GET', 'OPTIONS'])
+@jwt_required()
+def verify_token():
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
     
 @auth_bp.route('/logout', methods=['POST'])
 def logout():

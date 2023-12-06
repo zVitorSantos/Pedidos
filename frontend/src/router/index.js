@@ -2,14 +2,16 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 function isTokenExpired() {
   const token = localStorage.getItem('accessToken');
   if (!token) return true;
 
-  const decodedToken = jwt_decode(token);
-  console.log(decodedToken);
+  const parts = token.split('.');
+  if (parts.length !== 3) return true;
+
+  const decodedToken = jwtDecode(token);
   const currentTime = Date.now() / 1000;
 
   return decodedToken.exp < currentTime;
@@ -22,7 +24,6 @@ const router = createRouter({
       path: '/',
       name: 'Home',
       component: Home,
-      meta: { requiresAuth: true},
     },
     {
       path: '/login',

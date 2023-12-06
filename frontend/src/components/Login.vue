@@ -86,17 +86,26 @@ async function handleSubmit() {
       password,
     });
     
-    console.log(response);
-
     // Se a solicitação for bem-sucedida, armazene o token de acesso no local storage
     localStorage.setItem('accessToken', response.data.accessToken);
-    console.log(response.data.accessToken);
 
     // Redirecione o usuário para a página inicial
     window.location.href = '/';
   } catch (error) {
-    console.log(error);
-    showNotification('Erro ao fazer login. Verifique suas credenciais.');
+    if (error.response) {
+      // O pedido foi feito e o servidor respondeu com um status fora do intervalo de 2xx
+      if (error.response.status === 401) {
+        showNotification('Erro ao fazer login. Verifique suas credenciais.');
+      } else {
+        showNotification('Erro no servidor. Por favor, tente novamente mais tarde.');
+      }
+    } else if (error.request) {
+      // O pedido foi feito, mas nenhuma resposta foi recebida
+      showNotification('Erro de rede. Por favor, verifique sua conexão com a internet.');
+    } else {
+      // Algo aconteceu na configuração do pedido que acionou um erro
+      showNotification('Erro ao fazer login. Por favor, tente novamente mais tarde.');
+    }
   }
 }
 </script>

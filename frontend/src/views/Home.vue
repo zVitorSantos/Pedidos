@@ -12,7 +12,7 @@ onMounted(async () => {
   try {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      const response = await axios.get('/verify-token', {
+      const response = await axios.get('/api/auth/verify-token', {
         headers: { Authorization: `Bearer ${token}` }
       });
       isAuthenticated.value = response.data.isAuthenticated;
