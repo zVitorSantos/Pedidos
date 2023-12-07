@@ -56,8 +56,8 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import Notification from './notification.vue';
+import { ref } from 'vue';
+import Notification from './Notification.vue';
 import axios from 'axios';
 
 export default {
@@ -74,9 +74,9 @@ export default {
     // Criar uma referência para o componente Notification
     const notificationRef = ref();
 
-    const showNotification = (message) => {
+    const showNotification = (message, type = 'info') => {
       // Acessar o componente Notification usando a referência
-      notificationRef.value.showNotification(message);
+      notificationRef.value.showNotification(message, type);
     };
 
     const togglePasswordVisibility = (inputId) => {
@@ -90,48 +90,54 @@ export default {
     };
 
     const handleSubmit = async () => {
-  if (!name.value || !email.value || !password.value || !confirmPassword.value) {
-    showNotification('Por favor, preencha todos os campos.');
-    return;
-  }
+      if (!name.value || !email.value || !password.value || !confirmPassword.value) {
+        showNotification('Por favor, preencha todos os campos.', 'error');
+        return;
+      }
 
-  if (!/^[a-zA-Z ]{3,}$/.test(name.value)) {
-    showNotification('Nome de usuário inválido. Deve conter no mínimo 3 letras e apenas letras ou espaços.');
-    return;
-  }
+      if (!/^[a-zA-Z ]{3,}$/.test(name.value)) {
+        showNotification('Nome de usuário inválido. Deve conter no mínimo 3 letras e apenas letras ou espaços.', 'error');
+        return;
+      }
 
-  const isValidEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.value);
+      const isValidEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.value);
 
-  if (!isValidEmail) {
-    showNotification('Email inválido. Por favor, insira um email válido.');
-    return;
-  }
+      if (!isValidEmail) {
+        showNotification('Email inválido. Por favor, insira um email válido.', 'error');
+        return;
+      }
 
-  if (password.value !== confirmPassword.value) {
-    showNotification('As senhas não coincidem. Por favor, tente novamente.');
-    return;
-  }
+      if (password.value !== confirmPassword.value) {
+        showNotification('As senhas não coincidem. Por favor, tente novamente.', 'error');
+        return;
+      }
 
-  try {
-    // Fazer a requisição HTTP POST para a rota de registro
-    const response = await axios.post('http://127.0.0.1:5173/api/auth/register', {
-      name: name.value,
-      email: email.value,
-      password: password.value,
-      confirmPassword: confirmPassword.value,
-      role: role.value,
-    });
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+      if (!passwordRegex.test(password.value)) {
+        showNotification('A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, uma letra minúscula e um número.', 'error');
+        return;
+      }
 
-    // Verificar se o registro foi bem-sucedido
-    if (response.status === 201) {
-      showNotification('Requisição de registro bem-sucedida!\nAguarde a autorização de um administrador\n para efetuar o login.');
-      // Redirecionar para a página de login, se necessário
-    } else {
-      showNotification('Erro ao registrar. Por favor, tente novamente mais tarde.');
-    }
-  } catch (error) {
-    console.error('Erro na requisição de registro:', error);
-    showNotification('Erro ao conectar ao servidor. Por favor, tente novamente mais tarde.');
+      try {
+        // Fazer a requisição HTTP POST para a rota de registro
+        const response = await axios.post('http://127.0.0.1:5173/api/auth/register', {
+          name: name.value,
+          email: email.value,
+          password: password.value,
+          confirmPassword: confirmPassword.value,
+          role: role.value,
+        });
+
+        // Verificar se o registro foi bem-sucedido
+        if (response.status === 201) {
+          showNotification('Requisição de registro bem-sucedida!\nAguarde a autorização de um administrador\n para efetuar o login.', 'success');
+          // Redirecionar para a página de login, se necessário
+        } else {
+          showNotification('Erro ao registrar. Por favor, tente novamente mais tarde.', 'error');
+        }
+      } catch (error) {
+        console.error('Erro na requisição de registro:', error);
+        showNotification('Erro ao conectar ao servidor. Por favor, tente novamente mais tarde.');
   }
 };
 

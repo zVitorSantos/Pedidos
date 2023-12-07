@@ -15,7 +15,7 @@
         <div class="row mb-4">
           <div class="col d-flex justify-content-center">
             <div class="form-check">
-              <input v-model="rememberMe" class="form-check-input" type="checkbox" value="" id="remember" checked />
+              <input v-model="rememberMe" class="form-check-input" type="checkbox" value="" id="remember" checked @change="handleRememberMeChange" />
               <label class="form-check-label" for="remember">Lembre-me</label>
             </div>
           </div>
@@ -44,7 +44,7 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
-import Notification from './notification.vue';
+import Notification from './Notification.vue';
 
 let email = '';
 let password = '';
@@ -52,8 +52,18 @@ let rememberMe = true;
 
 const notification = ref(null);
 
-function showNotification(message) {
-  notification.value.showNotification(message);
+function showNotification(message, type = 'info') {
+  notification.value.showNotification(message, type);
+}
+
+function handleRememberMeChange() {
+  if (rememberMe) {
+    // Emita um token de atualização de longa duração
+    authService.issueRefreshToken(user, '7d');  // 7 dias
+  } else {
+    // Emita um token de atualização de curta duração
+    authService.issueRefreshToken(user, '1h');  // 1 hora
+  }
 }
 
 // Função para alternar a visibilidade da senha
@@ -75,7 +85,7 @@ function togglePasswordVisibility() {
 async function handleSubmit() {
   // Verifique se os campos estão preenchidos
   if (!email || !password) {
-    showNotification('Por favor, preencha todos os campos.');
+    showNotification('Por favor, preencha todos os campos.', 'error');
     return;
   }
 
@@ -84,27 +94,32 @@ async function handleSubmit() {
     const response = await axios.post('http://127.0.0.1:5173/api/auth/login', {
       email,
       password,
+      rememberMe,  // Adicione a opção "Lembre-me" ao corpo da solicitação
     });
-    
-    // Se a solicitação for bem-sucedida, armazene o token de acesso no local storage
-    localStorage.setItem('accessToken', response.data.accessToken);
 
-    // Redirecione o usuário para a página inicial
-    window.location.href = '/';
-  } catch (error) {
+    // Se a solicitação for bem-sucedida, armazene o token de acesso e o token de atualização no local storage
+    localStorage.setItem('accessToken', response.data.access_token);
+    localStorage.setItem('refreshToken', response.data.refresh_token);
+
+    // Redirecione o usuário para a página inicial após um pequeno atraso
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 100);
+  } 
+  catch (error) {
     if (error.response) {
       // O pedido foi feito e o servidor respondeu com um status fora do intervalo de 2xx
       if (error.response.status === 401) {
-        showNotification('Erro ao fazer login. Verifique suas credenciais.');
+        showNotification('Erro ao fazer login. Verifique suas credenciais.', 'error');
       } else {
-        showNotification('Erro no servidor. Por favor, tente novamente mais tarde.');
+        showNotification('Erro no servidor. Por favor, tente novamente mais tarde.', 'error');
       }
     } else if (error.request) {
       // O pedido foi feito, mas nenhuma resposta foi recebida
-      showNotification('Erro de rede. Por favor, verifique sua conexão com a internet.');
+      showNotification('Erro de rede. Por favor, verifique sua conexão com a internet.', 'error');
     } else {
       // Algo aconteceu na configuração do pedido que acionou um erro
-      showNotification('Erro ao fazer login. Por favor, tente novamente mais tarde.');
+      showNotification('Erro ao fazer login. Por favor, tente novamente mais tarde.', 'error');
     }
   }
 }

@@ -1,8 +1,10 @@
 from flask import Blueprint, jsonify, request, flash, redirect, url_for
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, unset_jwt_cookies, verify_jwt_in_request
 from flask_login import current_user, logout_user, login_required
 from functools import wraps
+from datetime import timedelta
 from app.models import User, Empresa, Admin, db
+from .. import login_manager
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -119,28 +121,41 @@ def login():
     data = request.json
     email = data.get('email')
     password = data.get('password')
+    remember_me = data.get('rememberMe', False)
 
     user = User.query.filter_by(email=email).first()
 
     if user and user.check_password(password):
-        print(user.check_password(password))
         if user.is_approved:
             # Crie um token de acesso
             access_token = create_access_token(identity=email)
-            print(access_token)
-            return jsonify(access_token=access_token), 200
+            # Crie um token de atualização com base na opção "Lembre-me"
+            if remember_me:
+                refresh_token = create_refresh_token(identity=email, expires_delta=timedelta(days=7))
+            else:
+                refresh_token = create_refresh_token(identity=email, expires_delta=timedelta(hours=1))
+            return jsonify(access_token=access_token, refresh_token=refresh_token), 200
         else:
             return jsonify({'error': 'Aguardando aprovação do administrador'}), 403
     else:
         return jsonify({'error': 'Credenciais inválidas'}), 401
     
 @auth_bp.route('/verify-token', methods=['GET', 'OPTIONS'])
-@jwt_required()
 def verify_token():
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+    if request.method != 'OPTIONS':
+        verify_jwt_in_request()
+        current_user = get_jwt_identity()
+        return jsonify(logged_in_as=current_user), 200
+    else:
+        return jsonify({}), 200
+    
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
     
 @auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
 def logout():
-    logout_user()
-    return jsonify({'message': 'Logout bem-sucedido'}), 200
+    resp = jsonify({'message': 'Logout bem-sucedido'})
+    unset_jwt_cookies(resp)
+    return resp, 200

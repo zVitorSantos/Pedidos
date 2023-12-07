@@ -1,31 +1,33 @@
 <template>
-    <div v-if="isVisible" class="notification">
+    <div v-if="isVisible" class="notification" :class="type">
       {{ message }}
     </div>
-</template>
+  </template>
 
 <script>
 export default {
-data() {
+  data() {
     return {
-    isVisible: false,
-    message: '',
+      isVisible: false,
+      message: '',
+      type: 'info', // Default type
     };
-},
-methods: {
-    showNotification(message) {
-    this.isVisible = true;
-    this.message = message;
+  },
+  methods: {
+    showNotification(message, type = 'info') {
+      this.isVisible = true;
+      this.message = message;
+      this.type = type;
 
-    setTimeout(() => {
+      setTimeout(() => {
         this.hideNotification();
-    }, 3000);
+      }, 3000);
     },
     hideNotification() {
-    this.isVisible = false;
-    this.message = '';
+      this.isVisible = false;
+      this.message = '';
     },
-},
+  },
 };
 </script>
 
@@ -41,5 +43,15 @@ color: #fff;
 z-index: 1000;
 border: 1px solid black;
 border-radius: 10px; 
+}
+
+.notification.error {
+  background-color: rgba(228, 35, 35, 0.843)
+}
+.notification.success {
+  background-color: #2fb62fd7;
+}
+.notification.info {
+  background-color: #42429ed7;
 }
 </style>
