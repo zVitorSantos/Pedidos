@@ -10,7 +10,7 @@ export default {
     return {
       isVisible: false,
       message: '',
-      type: 'info', // Default type
+      type: 'info',
     };
   },
   methods: {

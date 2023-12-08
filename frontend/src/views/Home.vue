@@ -11,14 +11,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineAsyncComponent } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-const NavBarAuth = defineAsyncComponent(() => import('../components/NavBarAuth.vue'));
-const NavBarUnAuth = defineAsyncComponent(() => import('../components/NavBarUnAuth.vue'));
-const HomeAuthenticated = defineAsyncComponent(() => import('../components/HomeAuth.vue'));
-const HomeUnAuthenticated = defineAsyncComponent(() => import('../components/HomeUnAuth.vue'));
-const Footer = defineAsyncComponent(() => import('../components/Footer.vue'));
+import NavBarAuth from '../components/NavBarAuth.vue';
+import NavBarUnAuth from '../components/NavBarUnAuth.vue';
+import HomeAuthenticated from '../components/HomeAuth.vue';
+import HomeUnAuthenticated from '../components/HomeUnAuth.vue';
+import Footer from '../components/Footer.vue';
 
 let isAuthenticated = ref(false);
 

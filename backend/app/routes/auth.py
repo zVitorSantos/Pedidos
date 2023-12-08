@@ -117,7 +117,6 @@ def get_pending_users():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    print("Login function called")
     data = request.json
     email = data.get('email')
     password = data.get('password')
@@ -149,6 +148,13 @@ def verify_token():
     else:
         return jsonify({}), 200
     
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    current_user = get_jwt_identity()
+    access_token = create_access_token(identity=current_user)
+    return jsonify(access_token=access_token), 200
+    
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -159,3 +165,36 @@ def logout():
     resp = jsonify({'message': 'Logout bem-sucedido'})
     unset_jwt_cookies(resp)
     return resp, 200
+
+@auth_bp.route('/settings/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def settings(user_id):
+    data = request.json
+    current_user = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    # Verifique se o usuário atual tem permissão para alterar as configurações do usuário alvo
+    if current_user.role == 'admin':
+        # Os administradores podem alterar as configurações de qualquer usuário
+        pass
+    elif current_user.role == 'employee':
+        # Os funcionários podem alterar as configurações de si mesmos e de qualquer cliente
+        if current_user.id != user.id and user.role != 'client':
+            return jsonify({'message': 'Você não tem permissão para alterar as configurações deste usuário'}), 403
+    elif current_user.role == 'representative':
+        # Os representantes podem alterar as configurações de si mesmos e de seus clientes
+        if current_user.id != user.id and user not in current_user.clients:
+            return jsonify({'message': 'Você não tem permissão para alterar as configurações deste usuário'}), 403
+    else:
+        # Os clientes só podem alterar suas próprias configurações
+        if current_user.id != user.id:
+            return jsonify({'message': 'Você não tem permissão para alterar as configurações deste usuário'}), 403
+
+    # Atualize as configurações do usuário
+    for key, value in data.items():
+        if hasattr(user, key):
+            setattr(user, key, value)
+
+    db.session.commit()
+
+    return jsonify({'message': 'Configurações atualizadas com sucesso'}), 200

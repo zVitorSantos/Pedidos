@@ -56,16 +56,6 @@ function showNotification(message, type = 'info') {
   notification.value.showNotification(message, type);
 }
 
-function handleRememberMeChange() {
-  if (rememberMe) {
-    // Emita um token de atualização de longa duração
-    authService.issueRefreshToken(user, '7d');  // 7 dias
-  } else {
-    // Emita um token de atualização de curta duração
-    authService.issueRefreshToken(user, '1h');  // 1 hora
-  }
-}
-
 // Função para alternar a visibilidade da senha
 function togglePasswordVisibility() {
   const passwordInput = document.getElementById('password');
@@ -94,7 +84,7 @@ async function handleSubmit() {
     const response = await axios.post('http://127.0.0.1:5173/api/auth/login', {
       email,
       password,
-      rememberMe,  // Adicione a opção "Lembre-me" ao corpo da solicitação
+      rememberMe,
     });
 
     // Se a solicitação for bem-sucedida, armazene o token de acesso e o token de atualização no local storage
@@ -108,10 +98,14 @@ async function handleSubmit() {
   } 
   catch (error) {
     if (error.response) {
-      // O pedido foi feito e o servidor respondeu com um status fora do intervalo de 2xx
-      if (error.response.status === 401) {
-        showNotification('Erro ao fazer login. Verifique suas credenciais.', 'error');
+      if (error.response.status === 404) {
+        // O e-mail não existe
+        showNotification('O e-mail fornecido não existe.', 'error');
+      } else if (error.response.status === 401) {
+        // A senha está incorreta
+        showNotification('A senha fornecida está incorreta.', 'error');
       } else {
+        // Outro erro ocorreu
         showNotification('Erro no servidor. Por favor, tente novamente mais tarde.', 'error');
       }
     } else if (error.request) {

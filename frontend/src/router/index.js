@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { jwtDecode } from 'jwt-decode';
+import Home from '../views/Home.vue';
+import Login from '../views/Login.vue';
+import Register from '../views/Register.vue';
+import Settings from '../views/Settings.vue';
 
 function isTokenExpired() {
   const token = localStorage.getItem('accessToken');
@@ -20,17 +24,23 @@ const router = createRouter({
     {
       path: '/',
       name: 'Home',
-      component: () => import('../views/Home.vue'),
+      component: Home,
     },
     {
       path: '/login',
       name: 'Login',
-      component: () => import('../views/Login.vue')
+      component: Login
     },
     {
       path: '/register',
       name: 'Register',
-      component: () => import('../views/Register.vue')
+      component: Register
+    },
+    {
+      path: '/settings',
+      name: 'Settings',
+      component: Settings,
+      meta: { requiresAuth: true }, 
     },
   ],
 });

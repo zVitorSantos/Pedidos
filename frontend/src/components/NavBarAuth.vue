@@ -1,5 +1,5 @@
 <template>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <nav class="navbar navbar-light bg-light fixed-top">
       <div class="container-fluid" style="height: 2.5rem;">
         <!-- Logo -->
         <a class="navbar-brand" href="#">Navbar</a>
@@ -21,17 +21,16 @@
         <!-- Dropdown do Usuário -->
         <div class="dropdown">
           <button
-            class="btn btn-secondary dropdown-toggle"
+            class="navbar-toggler bg-light navbar-light"
             type="button"
             id="dropdownMenuButton"
             data-bs-toggle="dropdown"
             aria-expanded="false"
           >
-            User
+            <span class="navbar-toggler-icon"></span>
           </button>
-          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <li><a class="dropdown-item" href="#">Profile</a></li>
-            <li><a class="dropdown-item" href="#">Settings</a></li>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+            <li><router-link class="dropdown-item" to="/settings">Settings</router-link></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
           </ul>
@@ -83,4 +82,14 @@
     /* justify-content: center; */
     /* align-items: center; */
     }
+    .navbar-light .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3ccircle cx='12' cy='7' r='4'/%3e%3cpath d='M5.41 20.74a9 9 0 0 1 13.18 0'/%3e%3c/svg%3e");
+    }
+    .navbar-toggler:focus {
+      outline: none;
+    }
+    .navbar-toggler:hover {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
   </style>
