@@ -21,26 +21,6 @@
           <i class="fas fa-eye-slash toggle-password" @click="togglePasswordVisibility('confirmPassword')"></i>
         </div>
 
-        <!-- Tipo de Usuário -->
-        <div class="form-outline mb-4">
-          <div class="form-check">
-            <input v-model="role" class="form-check-input" type="radio" name="role" id="client" value="client" checked />
-            <label class="form-check-label" for="client">Cliente</label>
-          </div>
-          <div class="form-check">
-            <input v-model="role" class="form-check-input" type="radio" name="role" id="representative" value="representative" />
-            <label class="form-check-label" for="representative">Representante</label>
-          </div>
-          <div class="form-check">
-            <input v-model="role" class="form-check-input" type="radio" name="role" id="employee" value="employee" />
-            <label class="form-check-label" for="employee">Funcionário</label>
-          </div>
-          <div class="form-check">
-            <input v-model="role" class="form-check-input" type="radio" name="role" id="admin" value="admin" />
-            <label class="form-check-label" for="admin">Administrador</label>
-          </div>
-        </div>
-
         <!-- Submit button -->
         <button type="button" class="btn btn-primary btn-block mb-4" @click="handleSubmit">Registrar</button>
 
@@ -69,7 +49,6 @@ export default {
     const email = ref('');
     const password = ref('');
     const confirmPassword = ref('');
-    const role = ref('client');
 
     // Criar uma referência para o componente Notification
     const notificationRef = ref();
@@ -125,7 +104,6 @@ export default {
           email: email.value,
           password: password.value,
           confirmPassword: confirmPassword.value,
-          role: role.value,
         });
 
         // Verificar se o registro foi bem-sucedido
@@ -146,7 +124,6 @@ export default {
       email,
       password,
       confirmPassword,
-      role,
       showNotification,
       togglePasswordVisibility,
       handleSubmit,

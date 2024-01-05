@@ -1,8 +1,8 @@
 <template>
     <nav class="navbar navbar-light bg-light fixed-top">
-      <div class="container-fluid" style="height: 2.5rem;">
+      <div class="container-fluid d-flex justify-content-between align-items-center" style="height: 2.5rem;">
         <!-- Logo -->
-        <a class="navbar-brand" href="#">Navbar</a>
+        <a class="navbar-brand" href="/">V-System</a>
   
         <!-- Busca -->
         <form class="d-flex input-group w-auto">
@@ -17,31 +17,76 @@
             <i class="fas fa-search"></i>
           </span>
         </form>
-  
-        <!-- Dropdown do Usuário -->
-        <div class="dropdown">
-          <button
-            class="navbar-toggler bg-light navbar-light"
-            type="button"
-            id="dropdownMenuButton"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
+
+        <div class="d-flex align-items-center">
+          <!-- Dropdown de Notificações -->
+          <div
+            class="dropdown me-3"
+              @mouseover="animateIcon('notification')"
+              @mouseleave="stopAnimation('notification')"
           >
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-            <li><router-link class="dropdown-item" to="/settings">Settings</router-link></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
-          </ul>
+            <button
+              type="button"
+              id="notificationDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              style="background: none; border: none; position: relative;"
+              :class="animateNotification ? 'animate__animated animate__pulse' : ''"
+            >
+              <i class="fas fa-bell fa-lg text-dark"></i>
+              <span
+                class="badge bg-warning text-dark"
+                v-if="notifications.length > 0"
+                style="position: absolute; top: -5px; right: -10px; border-radius: 50%; font-size: 0.6rem; padding: 5px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"
+              >
+                {{ notifications.length }}
+              </span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-start dropdown-menu-lg" aria-labelledby="notificationDropdown">
+              <li v-for="notification in notifications" :key="notification.id">
+                <a class="dropdown-item" href="#">
+                  {{ notification.text }}
+                </a>
+              </li>
+              <li v-if="notifications.length === 0">
+                <a class="dropdown-item" href="#">
+                  No notifications
+                </a>
+              </li>
+            </ul>
+          </div>
+    
+          <!-- Dropdown do Usuário -->
+          <div
+            class="dropdown"
+            @mouseover="animateIcon('user')"
+            @mouseleave="stopAnimation('user')"
+          >
+            <button
+              type="button"
+              id="dropdownMenuButton"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              style="background: none; border: none;"
+              :class="animateUser ? 'animate__animated animate__pulse' : ''"
+            >
+              <i class="fas fa-user fa-lg text-dark"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="dropdownMenuButton">
+              <li><router-link class="dropdown-item" to="/settings">Settings</router-link></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </nav>
   </template>
   
   <script setup>
-  import { ref } from 'vue';
+  import { ref, onMounted, onUnmounted } from 'vue';
   import axios from 'axios';
+  import { useRouter } from 'vue-router';
 
   const handleLogout = async () => {
     try {
@@ -57,7 +102,80 @@
       console.error('Error logging out', error);
     }
   };
-  </script>
+
+  const router = useRouter();
+let notifications = ref([]);
+let intervalId = null;
+
+async function checkNotifications() {
+  try {
+    const response = await axios.get('http://127.0.0.1:5173/api/notifications');
+    notifications.value = response.data;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function handleNotificationClick(notification) {
+  router.push(`/user/${notification.user_id}`);
+}
+
+onMounted(() => {
+  checkNotifications();
+  intervalId = setInterval(checkNotifications, 5000);
+});
+
+onUnmounted(() => {
+  clearInterval(intervalId);
+});
+
+// Função para adicionar uma notificação
+const addNotification = (text) => {
+  notifications.value.push({
+    id: Date.now(),
+    text,
+  });
+};
+
+// Estados para controlar a animação
+const animateNotification = ref(false);
+const animateUser = ref(false);
+
+// Função para animar o ícone
+const animateIcon = (icon) => {
+  if (icon === 'notification') {
+    animateNotification.value = true;
+  } else if (icon === 'user') {
+    animateUser.value = true;
+  }
+};
+
+// Função para parar a animação
+const stopAnimation = (icon) => {
+  if (icon === 'notification') {
+    animateNotification.value = false;
+  } else if (icon === 'user') {
+    animateUser.value = false;
+  }
+};
+
+const setupDropdownHover = () => {
+  var dropdown = document.querySelectorAll('.dropdown');
+  dropdown.forEach(function(curDropdown) {
+    curDropdown.addEventListener('mouseover', function() {
+      this.classList.add('show');
+      this.querySelector('.dropdown-menu').classList.add('show');
+    });
+    curDropdown.addEventListener('mouseout', function() {
+      this.classList.remove('show');
+      this.querySelector('.dropdown-menu').classList.remove('show');
+    });
+  });
+};
+
+onMounted(setupDropdownHover);
+
+</script>
   
   <style scoped>
   .navbar {
@@ -77,6 +195,7 @@
     padding-left: 15px;
     margin-right: auto;
     margin-left: auto;
+    justify-content: space-between;
     /* height: 100vh; */
     /* display: flex; */
     /* justify-content: center; */
@@ -90,6 +209,30 @@
     }
     .navbar-toggler:hover {
       border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+    }
+
+    .animate__animated.animate__pulse {
+      animation-name: pulse;
+      animation-duration: 0.5s;
+    }
+    .dropdown-menu {
+    left: auto !important;
+    right: 0;
+    }
+    .dropdown-menu-lg {
+    width: 300px; 
     }
     
   </style>

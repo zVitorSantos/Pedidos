@@ -5,6 +5,7 @@ backend/config.py
 node_modules/
 .vscode
 
+
 # Logs
 logs
 *.log

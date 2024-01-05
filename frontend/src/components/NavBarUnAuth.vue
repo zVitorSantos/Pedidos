@@ -2,7 +2,7 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
       <div class="container-fluid" style="height: 2.5rem;">
         <!-- Logo -->
-        <a class="navbar-brand" href="#">Navbar</a>
+        <a class="navbar-brand" href="/">Navbar</a>
   
         <!-- Busca -->
         <form class="d-flex input-group w-auto">

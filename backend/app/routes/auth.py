@@ -3,7 +3,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, jwt_re
 from flask_login import current_user, logout_user, login_required
 from functools import wraps
 from datetime import timedelta
-from app.models import User, Empresa, Admin, db
+from app.models import User, Notification, db
 from .. import login_manager
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
@@ -11,7 +11,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 def admin_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.is_authenticated and current_user.role == 'admin':
+        if current_user.is_authenticated and current_user.is_admin:
             return func(*args, **kwargs)
         else:
             return jsonify({'error': 'Apenas administradores podem acessar esta rota'}), 403
@@ -51,9 +51,17 @@ def register():
         return jsonify({'error': 'Este email já está em uso'}), 400
 
     # Registro de Usuário
-    new_user = User(name=data.get('name'), email=email, role=data.get('role'), is_approved=False)
+    new_user = User(name=data.get('name'), email=email, is_approved=False)
     new_user.set_password(password)
     new_user.save()
+
+    # Crie uma notificação para todos os administradores
+    admins = User.query.filter_by(is_admin=True).all()
+    for admin in admins:
+        notification = Notification(user_id=admin.id, text=f'Novo usuário registrado: {email}')
+        db.session.add(notification)
+
+    db.session.commit()
 
     return jsonify({'message': 'Registro bem-sucedido! Faça login para começar.'}), 201
 
@@ -66,28 +74,12 @@ def approve_user(user_id):
     if user.is_approved:
         return jsonify({'error': 'Este usuário já foi aprovado'}), 400
 
-    # Obter as empresas a serem associadas ao usuário
-    empresa_ids = request.json.get('empresa_ids')
-    if not empresa_ids:
-        return jsonify({'error': 'Pelo menos uma empresa deve ser especificada'}), 400
-
-    # Obter as empresas do banco de dados
-    empresas = Empresa.query.filter(Empresa.id.in_(empresa_ids)).all()
-
-    if len(empresas) != len(empresa_ids):
-        return jsonify({'error': 'Uma ou mais empresas especificadas não existem'}), 400
-
     # Aprovar o usuário
     user.is_approved = True
 
-    # Associar as empresas ao usuário
-    user.empresas = empresas
-
     # Promover a admin se solicitado
     if request.json.get('promote_to_admin'):
-        user.role = 'admin'
-        admin = Admin(user=user)
-        db.session.add(admin)
+        user.is_admin = True
 
     db.session.commit()
 
@@ -115,6 +107,18 @@ def get_pending_users():
 
     return jsonify({'pending_users': pending_users}), 200
 
+@auth_bp.route('/notifications', methods=['GET'])
+@jwt_required()
+def check_notifications():
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(email=current_user).first()
+
+    if not user:
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+
+    notifications = [notification.to_dict() for notification in user.notifications]
+    return jsonify({'notifications': notifications}), 200
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
@@ -133,6 +137,11 @@ def login():
                 refresh_token = create_refresh_token(identity=email, expires_delta=timedelta(days=7))
             else:
                 refresh_token = create_refresh_token(identity=email, expires_delta=timedelta(hours=1))
+
+            # Registre o login do usuário
+            user.last_login = timedelta.utcnow()
+            db.session.commit()
+
             return jsonify(access_token=access_token, refresh_token=refresh_token), 200
         else:
             return jsonify({'error': 'Aguardando aprovação do administrador'}), 403
@@ -165,36 +174,3 @@ def logout():
     resp = jsonify({'message': 'Logout bem-sucedido'})
     unset_jwt_cookies(resp)
     return resp, 200
-
-@auth_bp.route('/settings/<int:user_id>', methods=['PUT'])
-@jwt_required()
-def settings(user_id):
-    data = request.json
-    current_user = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    # Verifique se o usuário atual tem permissão para alterar as configurações do usuário alvo
-    if current_user.role == 'admin':
-        # Os administradores podem alterar as configurações de qualquer usuário
-        pass
-    elif current_user.role == 'employee':
-        # Os funcionários podem alterar as configurações de si mesmos e de qualquer cliente
-        if current_user.id != user.id and user.role != 'client':
-            return jsonify({'message': 'Você não tem permissão para alterar as configurações deste usuário'}), 403
-    elif current_user.role == 'representative':
-        # Os representantes podem alterar as configurações de si mesmos e de seus clientes
-        if current_user.id != user.id and user not in current_user.clients:
-            return jsonify({'message': 'Você não tem permissão para alterar as configurações deste usuário'}), 403
-    else:
-        # Os clientes só podem alterar suas próprias configurações
-        if current_user.id != user.id:
-            return jsonify({'message': 'Você não tem permissão para alterar as configurações deste usuário'}), 403
-
-    # Atualize as configurações do usuário
-    for key, value in data.items():
-        if hasattr(user, key):
-            setattr(user, key, value)
-
-    db.session.commit()
-
-    return jsonify({'message': 'Configurações atualizadas com sucesso'}), 200
