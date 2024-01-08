@@ -30,6 +30,7 @@ class User(db.Model, UserMixin):
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    type = db.Column(db.String(50))  
     text = db.Column(db.String(200))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
@@ -37,12 +38,16 @@ class Notification(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'text': self.text,
+            'text': self.get_notification_text(),
             'timestamp': self.timestamp
         }
 
-
-
+    def get_notification_text(self):
+        if self.type == 'accept_request':
+            return 'Você tem uma nova solicitação de aceitação.'
+        # Adicione outras condições para outros tipos de notificações
+        else:
+            return self.text
 
 # Fretes
 
@@ -64,7 +69,6 @@ class Platform(db.Model):
     commission_fees = db.relationship('CommissionFee', backref='platform', lazy='dynamic')
     reputation_discounts = db.relationship('ReputationDiscount', backref='platform', lazy='dynamic')
     additional_fees = db.relationship('AdditionalFee', backref='platform', lazy='dynamic')
-    additional_details = db.relationship('AdditionalDetails', backref='platform', lazy='dynamic')
 
 # Taxas
 
@@ -95,20 +99,36 @@ class AdditionalFee(db.Model):
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    ads = db.relationship('Ad', backref='category', lazy='dynamic')
+    subcategories = db.relationship('SubCategory', backref='category', lazy='dynamic')
+
+class SubCategory(db.Model):
+    __tablename__ = 'sub_category'  
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    ads = db.relationship('Ad', backref='sub_category', lazy='dynamic')
+    package_length = db.Column(db.Float) 
+    package_width = db.Column(db.Float) 
+    package_height = db.Column(db.Float) 
+    unit_weight = db.Column(db.Float) 
+
+ad_sale = db.Table('ad_sale',
+    db.Column('ad_id', db.Integer, db.ForeignKey('ad.id'), primary_key=True),
+    db.Column('sale_id', db.Integer, db.ForeignKey('sale.id'), primary_key=True)
+)
 
 class Ad(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
     description = db.Column(db.String(500))
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    subcategory_id = db.Column(db.Integer, db.ForeignKey('sub_category.id', name='fk_ad_subcategory'))
     price = db.Column(db.Float)
     date = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     code = db.Column(db.String(50), unique=True)
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
     platform = db.relationship('Platform', backref='ads')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    sales = db.relationship('Sale', secondary='ad_sale', backref=db.backref('ads', lazy='dynamic'))
+    sales = db.relationship('Sale', secondary=ad_sale, back_populates='ads')
 
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -116,11 +136,20 @@ class Sale(db.Model):
     total_value = db.Column(db.Float)
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
     code = db.Column(db.String(50))
-    products = db.relationship('Product', secondary='sale_product', backref=db.backref('sales', lazy='dynamic'))
-
+    customer_name = db.Column(db.String(100))
+    ads = db.relationship('Ad', secondary=ad_sale, back_populates='sales')
     def add_from_ad(self, ad):
         self.title = ad.title
         self.description = ad.description
         self.total_value = ad.price
         self.platform_id = ad.platform_id
         self.code = ad.code
+        self.ads.append(ad)
+
+    @property
+    def categories(self):
+        return [ad.category for ad in self.ads]
+
+    @property
+    def subcategories(self):
+        return [ad.subcategory for ad in self.ads]

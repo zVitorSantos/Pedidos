@@ -22,13 +22,12 @@
           <!-- Dropdown de Notificações -->
           <div
             class="dropdown me-3"
-              @mouseover="animateIcon('notification')"
-              @mouseleave="stopAnimation('notification')"
+            @mouseover="animateIcon('notification')"
+            @mouseleave="stopAnimation('notification')"
           >
             <button
               type="button"
               id="notificationDropdown"
-              data-bs-toggle="dropdown"
               aria-expanded="false"
               style="background: none; border: none; position: relative;"
               :class="animateNotification ? 'animate__animated animate__pulse' : ''"
@@ -55,6 +54,26 @@
               </li>
             </ul>
           </div>
+
+          <!-- Modal -->
+          <div class="modal fade" id="userApprovalModal" tabindex="-1" aria-labelledby="userApprovalModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="userApprovalModalLabel">User Approval</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" v-if="selectedNotification">
+                  User: {{ selectedNotification.value.user_id }}
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-success" @click="approveUser">Approve</button>
+                  <button type="button" class="btn btn-danger" @click="rejectUser">Reject</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
     
           <!-- Dropdown do Usuário -->
           <div
@@ -65,7 +84,6 @@
             <button
               type="button"
               id="dropdownMenuButton"
-              data-bs-toggle="dropdown"
               aria-expanded="false"
               style="background: none; border: none;"
               :class="animateUser ? 'animate__animated animate__pulse' : ''"
@@ -109,8 +127,8 @@ let intervalId = null;
 
 async function checkNotifications() {
   try {
-    const response = await axios.get('http://127.0.0.1:5173/api/notifications');
-    notifications.value = response.data;
+    const response = await axios.get('http://127.0.0.1:5173/api/auth/notifications');
+    notifications.value = response.data.notifications;
   } catch (error) {
     console.error(error);
   }
@@ -122,20 +140,10 @@ function handleNotificationClick(notification) {
 
 onMounted(() => {
   checkNotifications();
-  intervalId = setInterval(checkNotifications, 5000);
 });
 
 onUnmounted(() => {
-  clearInterval(intervalId);
 });
-
-// Função para adicionar uma notificação
-const addNotification = (text) => {
-  notifications.value.push({
-    id: Date.now(),
-    text,
-  });
-};
 
 // Estados para controlar a animação
 const animateNotification = ref(false);
@@ -174,6 +182,40 @@ const setupDropdownHover = () => {
 };
 
 onMounted(setupDropdownHover);
+
+let selectedNotification = ref(null);
+
+  const openModal = (notification) => {
+    selectedNotification = ref(notification);
+    console.log(selectedNotification.value);
+    var myModal = new bootstrap.Modal(document.getElementById('userApprovalModal'));
+    myModal.show();
+  };
+
+  const approveUser = async () => {
+    try {
+      const response = await axios.post(`http://127.0.0.1:5173/api/auth/approve_user/${selectedNotification.value.user_id}`);
+      console.log(response.data.message);
+      closeModal();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const rejectUser = async () => {
+    try {
+      const response = await axios.post(`http://127.0.0.1:5173/api/auth/reject_user/${selectedNotification.value.user_id}`);
+      console.log(response.data.message);
+      closeModal();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const closeModal = () => {
+    var myModal = bootstrap.Modal.getInstance(document.getElementById('userApprovalModal'));
+    myModal.hide();
+  };
 
 </script>
   

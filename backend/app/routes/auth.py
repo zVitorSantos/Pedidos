@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, flash, redirect, url_for
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, unset_jwt_cookies, verify_jwt_in_request
 from flask_login import current_user, logout_user, login_required
 from functools import wraps
-from datetime import timedelta
+from datetime import timedelta, datetime
 from app.models import User, Notification, db
 from .. import login_manager
 
@@ -35,7 +35,7 @@ def register():
     data = request.json
 
     # Validação de Dados
-    if not all(key in data for key in ['name', 'email', 'password', 'confirmPassword', 'role']):
+    if not all(key in data for key in ['name', 'email', 'password', 'confirmPassword']):
         return jsonify({'error': 'Todos os campos são obrigatórios'}), 400
 
     # Confirmação de Senha
@@ -58,7 +58,7 @@ def register():
     # Crie uma notificação para todos os administradores
     admins = User.query.filter_by(is_admin=True).all()
     for admin in admins:
-        notification = Notification(user_id=admin.id, text=f'Novo usuário registrado: {email}')
+        notification = Notification(user_id=admin.id, text=f'Novo registro: {User(name=data.get('name'))}')
         db.session.add(notification)
 
     db.session.commit()
@@ -139,7 +139,7 @@ def login():
                 refresh_token = create_refresh_token(identity=email, expires_delta=timedelta(hours=1))
 
             # Registre o login do usuário
-            user.last_login = timedelta.utcnow()
+            user.last_login = datetime.utcnow()
             db.session.commit()
 
             return jsonify(access_token=access_token, refresh_token=refresh_token), 200
