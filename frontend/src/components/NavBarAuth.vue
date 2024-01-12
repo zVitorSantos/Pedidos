@@ -107,19 +107,19 @@
   import { useRouter } from 'vue-router';
 
   const handleLogout = async () => {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      await axios.post('http://127.0.0.1:5173/api/auth/logout', {}, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      });
-      localStorage.removeItem('accessToken');
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Error logging out', error);
-    }
-  };
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    await axios.post('http://127.0.0.1:5173/api/auth/logout', {}, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    localStorage.removeItem('accessToken');
+    window.location.href = '/';
+  } catch (error) {
+    console.error('Error logging out', error);
+  }
+};
 
   const router = useRouter();
 let notifications = ref([]);
@@ -139,7 +139,6 @@ function handleNotificationClick(notification) {
 }
 
 onMounted(() => {
-  checkNotifications();
 });
 
 onUnmounted(() => {
