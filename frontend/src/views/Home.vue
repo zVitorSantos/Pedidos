@@ -5,7 +5,7 @@
       Loading...
     </div>
     <div v-else>
-      <NavBarAuth v-if="isAuthenticated" />
+      <NavBarAuth v-if="isAuthenticated" :notifications="notifications.notifications" @notifications-checked="handleNotificationsChecked" />
       <NavBarUnAuth v-else />
 
       <HomeUnAuthenticated v-if="!isAuthenticated" />
@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, defineEmits } from 'vue';
 import axios from 'axios';
 
 import NavBarAuth from '../components/NavBarAuth.vue';
@@ -29,35 +29,56 @@ import Footer from '../components/Footer.vue';
 let isAuthenticated = ref(false);
 let isLoading = ref(true); 
 
+let notifications = ref([]);
+
 // Função para verificar notificações
 const checkNotifications = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:5173/api/notifications', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+    const response = await axios.get('http://127.0.0.1:5173/api/auth/notifications', {
+      headers: { 
+        'Access-Control-Allow-Origin': '*',
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+      }
     });
-    if (response.data) {
-      // Faça algo com as notificações aqui
+    if (response && response.data) {
+      return response.data;
     }
   } catch (error) {
     console.error(error);
   }
+  return [];
+};
+
+// Função para lidar com o evento notifications-checked
+const handleNotificationsChecked = (newNotifications) => {
+  notifications.value = newNotifications;
 };
 
 onMounted(async () => {
   try {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      const response = await axios.get('http://127.0.0.1:5173/api/auth/verify-token', { 
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      try {
+        const response = await axios.get('http://127.0.0.1:5173/api/auth/verify-token', { 
+          headers: { 
+            'Access-Control-Allow-Origin': '*',
+            'Authorization': `Bearer ${token}` 
+          }
+        });
 
-      if (response.data && 'logged_in_as' in response.data) {
-        isAuthenticated.value = true;
-        await checkNotifications();
+        if (response && response.data && 'logged_in_as' in response.data) {
+          isAuthenticated.value = true;
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          // Aqui você pode lidar com o erro 401 de maneira adequada
+          console.log('Token inválido ou expirado');
+        } else {
+          // Outros erros (rede, servidor indisponível, etc.)
+          console.error(error);
+        }
       }
     }
-  } catch (error) {
-    console.error(error);
   } finally {
     isLoading.value = false; 
   }

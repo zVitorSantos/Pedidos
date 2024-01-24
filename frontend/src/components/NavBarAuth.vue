@@ -35,7 +35,7 @@
               <i class="fas fa-bell fa-lg text-dark"></i>
               <span
                 class="badge bg-warning text-dark"
-                v-if="notifications.length > 0"
+                v-if="notifications && notifications.length > 0"
                 style="position: absolute; top: -5px; right: -10px; border-radius: 50%; font-size: 0.6rem; padding: 5px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"
               >
                 {{ notifications.length }}
@@ -43,8 +43,8 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-start dropdown-menu-lg" aria-labelledby="notificationDropdown">
               <li v-for="notification in notifications" :key="notification.id">
-                <a class="dropdown-item" href="#">
-                  {{ notification.text }}
+                <a class="dropdown-item" href="#" @click="openModal(notification)">
+                  {{ notification.text }} 
                 </a>
               </li>
               <li v-if="notifications.length === 0">
@@ -53,26 +53,6 @@
                 </a>
               </li>
             </ul>
-          </div>
-
-          <!-- Modal -->
-          <div class="modal fade" id="userApprovalModal" tabindex="-1" aria-labelledby="userApprovalModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="userApprovalModalLabel">User Approval</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" v-if="selectedNotification">
-                  User: {{ selectedNotification.value.user_id }}
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-success" @click="approveUser">Approve</button>
-                  <button type="button" class="btn btn-danger" @click="rejectUser">Reject</button>
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-              </div>
-            </div>
           </div>
     
           <!-- Dropdown do Usuário -->
@@ -96,129 +76,205 @@
               <li><a class="dropdown-item" href="#" @click="handleLogout">Logout</a></li>
             </ul>
           </div>
+
+          <!-- Modal -->
+          <div class="modal fade" id="userApprovalModal" tabindex="-1" aria-labelledby="userApprovalModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="userApprovalModalLabel">User Approval</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" v-if="selectedNotification && selectedNotification.value">
+                  User: {{ selectedNotification.value.user_id }}
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-success" @click="approveUser">Approve</button>
+                  <button type="button" class="btn btn-danger" @click="rejectUser">Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </nav>
   </template>
   
-  <script setup>
+  <script>
   import { ref, onMounted, onUnmounted } from 'vue';
   import axios from 'axios';
   import { useRouter } from 'vue-router';
-
-  const handleLogout = async () => {
-  try {
-    const accessToken = localStorage.getItem('accessToken');
-    await axios.post('http://127.0.0.1:5173/api/auth/logout', {}, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    });
-    localStorage.removeItem('accessToken');
-    window.location.href = '/';
-  } catch (error) {
-    console.error('Error logging out', error);
-  }
-};
-
-  const router = useRouter();
-let notifications = ref([]);
-let intervalId = null;
-
-async function checkNotifications() {
-  try {
-    const response = await axios.get('http://127.0.0.1:5173/api/auth/notifications');
-    notifications.value = response.data.notifications;
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-function handleNotificationClick(notification) {
-  router.push(`/user/${notification.user_id}`);
-}
-
-onMounted(() => {
-});
-
-onUnmounted(() => {
-});
-
-// Estados para controlar a animação
-const animateNotification = ref(false);
-const animateUser = ref(false);
-
-// Função para animar o ícone
-const animateIcon = (icon) => {
-  if (icon === 'notification') {
-    animateNotification.value = true;
-  } else if (icon === 'user') {
-    animateUser.value = true;
-  }
-};
-
-// Função para parar a animação
-const stopAnimation = (icon) => {
-  if (icon === 'notification') {
-    animateNotification.value = false;
-  } else if (icon === 'user') {
-    animateUser.value = false;
-  }
-};
-
-const setupDropdownHover = () => {
-  var dropdown = document.querySelectorAll('.dropdown');
-  dropdown.forEach(function(curDropdown) {
-    curDropdown.addEventListener('mouseover', function() {
-      this.classList.add('show');
-      this.querySelector('.dropdown-menu').classList.add('show');
-    });
-    curDropdown.addEventListener('mouseout', function() {
-      this.classList.remove('show');
-      this.querySelector('.dropdown-menu').classList.remove('show');
-    });
-  });
-};
-
-onMounted(setupDropdownHover);
-
-let selectedNotification = ref(null);
-
-  const openModal = (notification) => {
-    selectedNotification = ref(notification);
-    console.log(selectedNotification.value);
-    var myModal = new bootstrap.Modal(document.getElementById('userApprovalModal'));
-    myModal.show();
-  };
-
-  const approveUser = async () => {
-    try {
-      const response = await axios.post(`http://127.0.0.1:5173/api/auth/approve_user/${selectedNotification.value.user_id}`);
-      console.log(response.data.message);
-      closeModal();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const rejectUser = async () => {
-    try {
-      const response = await axios.post(`http://127.0.0.1:5173/api/auth/reject_user/${selectedNotification.value.user_id}`);
-      console.log(response.data.message);
-      closeModal();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const closeModal = () => {
-    var myModal = bootstrap.Modal.getInstance(document.getElementById('userApprovalModal'));
-    myModal.hide();
-  };
-
-</script>
+  import { Modal } from 'bootstrap';
   
-  <style scoped>
+  export default {
+    props: {
+      notifications: {
+        type: Array,
+        default: () => [],
+      },
+      onNotificationsChecked: {
+        type: Function,
+        default: function(newNotifications) {
+          this.notifications = newNotifications;
+        },
+      },
+    },
+
+    setup(props, { emit }) {
+      const router = useRouter();
+      let notifications = ref([]);
+      let intervalId = null;
+      const animateNotification = ref(false);
+      const animateUser = ref(false);
+      let selectedNotification = ref(null);
+  
+      const handleLogout = async () => {
+        try {
+          const accessToken = localStorage.getItem('accessToken');
+          await axios.post('http://127.0.0.1:5173/api/auth/logout', {}, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          localStorage.removeItem('accessToken');
+          window.location.href = '/';
+        } catch (error) {
+          console.error('Error logging out', error);
+        }
+      };
+  
+      async function checkNotifications() {
+        try {
+          const accessToken = localStorage.getItem('accessToken');
+          const response = await axios.get('http://127.0.0.1:5173/api/auth/notifications', {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          notifications.value = response.data.notifications;
+          emit('notifications-checked', notifications.value); 
+        } catch (error) {
+          console.error(error);
+        }
+      }
+  
+      function handleNotificationClick(notification) {
+        router.push(`/user/${notification.user_id}`);
+      }
+  
+      const animateIcon = (icon) => {
+        if (icon === 'notification') {
+          animateNotification.value = true;
+        } else if (icon === 'user') {
+          animateUser.value = true;
+        }
+      };
+  
+      const stopAnimation = (icon) => {
+        if (icon === 'notification') {
+          animateNotification.value = false;
+        } else if (icon === 'user') {
+          animateUser.value = false;
+        }
+      };
+  
+      const setupDropdownHover = () => {
+        var dropdown = document.querySelectorAll('.dropdown');
+        dropdown.forEach(function(curDropdown) {
+          curDropdown.addEventListener('mouseover', function() {
+            this.classList.add('show');
+            this.querySelector('.dropdown-menu').classList.add('show');
+          });
+          curDropdown.addEventListener('mouseout', function() {
+            this.classList.remove('show');
+            this.querySelector('.dropdown-menu').classList.remove('show');
+          });
+        });
+      };
+
+      onMounted(async () => {
+        setupDropdownHover();
+        await checkNotifications();
+
+        // Mova o modal para o final do body uma vez quando o componente é montado
+        var myModalElement = document.getElementById('userApprovalModal');
+        document.body.appendChild(myModalElement);
+      });
+
+      const openModal = (notification) => {
+        selectedNotification.value = notification;
+        console.log(selectedNotification.value);
+        var myModalElement = document.getElementById('userApprovalModal');
+        var myModal = new Modal(myModalElement);
+        myModal.show();
+
+        // Mova o modal para o final do body
+        document.body.appendChild(myModalElement);
+      };
+
+      onUnmounted(() => {
+        document.removeEventListener('shown.bs.modal', function (event) {
+          document.body.appendChild(event.target);
+        }, false);
+      });
+
+      const closeModal = () => {
+        var myModal = Modal.getInstance(document.getElementById('userApprovalModal'));
+        myModal.hide();
+      };
+  
+      const approveUser = async () => {
+        try {
+          const accessToken = localStorage.getItem('accessToken');
+          const response = await axios.post(`http://127.0.0.1:5173/api/auth/approve_user/${selectedNotification.value.user_id}`, {}, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          console.log(response.data.message);
+          closeModal();
+        } catch (error) {
+          console.error(error);
+        }
+      };
+
+      const rejectUser = async () => {
+        try {
+          const accessToken = localStorage.getItem('accessToken');
+          const response = await axios.post(`http://127.0.0.1:5173/api/auth/reject_user/${selectedNotification.value.user_id}`, {}, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          console.log(response.data.message);
+          closeModal();
+        } catch (error) {
+          console.error(error);
+        }
+      };
+  
+      return {
+        handleLogout,
+        checkNotifications,
+        handleNotificationClick,
+        animateIcon,
+        stopAnimation,
+        setupDropdownHover,
+        openModal,
+        closeModal,
+        approveUser,
+        rejectUser,
+        closeModal,
+        notifications,
+        animateNotification,
+        animateUser,
+        selectedNotification
+      }
+    },
+  };
+  </script>
+  
+<style scoped>
   .navbar {
     background-color: #f8f9fa;
     position: fixed;
@@ -274,6 +330,13 @@ let selectedNotification = ref(null);
     }
     .dropdown-menu-lg {
     width: 300px; 
+      }
+
+    .modal {
+      z-index: 1050 !important;
     }
-    
-  </style>
+    .modal-backdrop {
+      z-index: 1040 !important;
+    }
+  
+</style>

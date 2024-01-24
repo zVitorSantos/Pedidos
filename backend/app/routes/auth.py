@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, flash, redirect, url_for
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, unset_jwt_cookies, verify_jwt_in_request
 from flask_login import current_user, logout_user, login_required
 from functools import wraps
+from flask_mail import Message
 from datetime import timedelta, datetime
 from app.models import User, Notification, db
 from .. import login_manager
@@ -11,7 +12,11 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 def admin_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if current_user.is_authenticated and current_user.is_admin:
+        verify_jwt_in_request()  # Verifica se um JWT válido está presente
+        current_user = get_jwt_identity()  # Obtenha a identidade do JWT
+        user = User.query.filter_by(email=current_user).first()  # Obtenha o usuário do banco de dados
+
+        if user and user.is_admin:
             return func(*args, **kwargs)
         else:
             return jsonify({'error': 'Apenas administradores podem acessar esta rota'}), 403
@@ -57,8 +62,10 @@ def register():
 
     # Crie uma notificação para todos os administradores
     admins = User.query.filter_by(is_admin=True).all()
+    name = data.get('name')
+    email = data.get('email')
     for admin in admins:
-        notification = Notification(user_id=admin.id, text=f'Novo registro: {User(name=data.get('name'))}')
+        notification = Notification(user_id=admin.id, referenced_user_id=new_user.id, text=f'Novo registro:\n{user}.\nEmail: {email}')
         db.session.add(notification)
 
     db.session.commit()
@@ -70,16 +77,21 @@ def register():
 def approve_user(user_id):
     user = User.query.get_or_404(user_id)
 
-    # Verificar se o usuário está aguardando aprovação
     if user.is_approved:
         return jsonify({'error': 'Este usuário já foi aprovado'}), 400
 
-    # Aprovar o usuário
     user.is_approved = True
 
-    # Promover a admin se solicitado
     if request.json.get('promote_to_admin'):
         user.is_admin = True
+
+    Notification.query.filter_by(referenced_user_id=user.id).delete()
+
+    msg = Message("Sua inscrição foi aprovada",
+                  sender="vitorsantos4736@gmail.com",
+                  recipients=[user.email])
+    msg.body = "Seu texto aqui"
+    mail.send(msg)
 
     db.session.commit()
 
@@ -91,11 +103,18 @@ def reject_user(user_id):
     user = User.query.get_or_404(user_id)
 
     if user.is_approved:
-        # Se o usuário já estiver aprovado, não é possível rejeitar
         return jsonify({'error': 'Este usuário já foi aprovado e não pode ser rejeitado'}), 400
 
-    # Rejeitar o usuário
     db.session.delete(user)
+
+    Notification.query.filter_by(referenced_user_id=user.id).delete()
+
+    msg = Message("Sua inscrição foi rejeitada",
+                  sender="vitorsantos4736@gmail.com",
+                  recipients=[user.email])
+    msg.body = "Seu texto aqui"
+    mail.send(msg)
+
     db.session.commit()
 
     return jsonify({'message': 'Usuário rejeitado com sucesso'}), 200

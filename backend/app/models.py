@@ -30,6 +30,7 @@ class User(db.Model, UserMixin):
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    referenced_user_id = db.Column(db.Integer)  
     type = db.Column(db.String(50))  
     text = db.Column(db.String(200))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)

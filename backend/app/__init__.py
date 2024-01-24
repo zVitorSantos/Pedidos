@@ -4,11 +4,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail  
 from sqlalchemy.orm import configure_mappers
 
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+mail = Mail()  
 
 def create_app(config_class='config.Config'):
     app = Flask(__name__)
@@ -23,6 +25,9 @@ def create_app(config_class='config.Config'):
 
     # Inicialize o LoginManager
     login_manager.init_app(app)
+
+    # Inicialize o Mail
+    mail.init_app(app)
 
     # Registra as blueprints
     from app.routes.auth import auth_bp
